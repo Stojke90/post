@@ -8,34 +8,20 @@ import {
   Grid,
   Typography,
 } from "@mui/material";
-import axios from "axios";
 import React from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
-import { allPosts } from "../../../features/allPosts";
 import useStyles from "./style";
-import { MAIN_ROUTE, HEADERS } from "../../../App";
+import { useDeletePostMutation } from "../../../features/fetchPostApi";
 
-const PostCard = ({ data }) => {
+const PostCard = ({ postData }) => {
   // css styles,from material ui
   const classes = useStyles();
-  // redux
-  const dispatch = useDispatch();
   // set publish time
   const time = (data) => data.split("T").join(" ").split(".")[0];
-  // geter for state of all users
-  const posts = useSelector((state) => state.allPosts.value);
-  // delete post
-  const deletePost = (id) => {
-    axios
-      .delete(`${MAIN_ROUTE}post/${id}`, HEADERS)
-      .then((res) => {
-        res.status === 200 && console.log(res.data.id);
-        dispatch(allPosts(posts.filter((data) => data.id !== res.data.id)));
-      })
-      .catch((error) => alert(error.message));
-  };
+  //delete post
+  const [deletePost] = useDeletePostMutation();
+
   return (
     <Grid
       item
@@ -53,17 +39,18 @@ const PostCard = ({ data }) => {
               className={classes.owner_img}
               component="img"
               alt="user"
-              image={data.owner.picture}
+              image={postData.owner.picture}
             />
             <Typography varinat="body1">
-              {data.owner.title}. {data.owner.firstName} {data.owner.lastName}
+              {postData.owner.title}. {postData.owner.firstName}{" "}
+              {postData.owner.lastName}
             </Typography>
           </CardContent>
           <CardMedia
             component="img"
             alt="post"
             height="100"
-            image={data.image}
+            image={postData.image}
           />
         </Grid>
 
@@ -75,16 +62,16 @@ const PostCard = ({ data }) => {
               noWrap
               className={classes.post_text}
             >
-              {data.text}
+              {postData.text}
             </Typography>
             <Typography
               varinat="h6"
               gutterBottom
               style={{ fontWeight: "bold" }}
             >
-              Publish: {time(data.publishDate)}
+              Publish: {time(postData.publishDate)}
             </Typography>
-            {data.tags.map((text) => (
+            {postData.tags.map((text) => (
               <Typography
                 key={uuidv4()}
                 gutterBottom
@@ -102,7 +89,7 @@ const PostCard = ({ data }) => {
                 top: "5px",
               }}
               icon={<FavoriteIcon style={{ color: "red" }} />}
-              label={data.likes}
+              label={postData.likes}
             />
           </CardContent>
         </Grid>
@@ -120,7 +107,7 @@ const PostCard = ({ data }) => {
             style={{ width: "45%" }}
             variant="contained"
             component={Link}
-            to={`/${data.id}`}
+            to={`/${postData.id}`}
           >
             DETAILS
           </Button>
@@ -128,7 +115,7 @@ const PostCard = ({ data }) => {
             style={{ width: "45%" }}
             variant="contained"
             component={Link}
-            to={`/${data.id}/edit`}
+            to={`/${postData.id}/edit`}
           >
             EDIT
           </Button>
@@ -136,7 +123,9 @@ const PostCard = ({ data }) => {
             style={{ width: "90%", margin: "0.8rem auto" }}
             color="error"
             variant="contained"
-            onClick={() => deletePost(data.id)}
+            onClick={() =>
+              deletePost(postData.id).then((res) => console.log(res.data.id))
+            }
           >
             DELETE
           </Button>

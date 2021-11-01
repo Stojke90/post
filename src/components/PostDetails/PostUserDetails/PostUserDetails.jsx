@@ -13,7 +13,7 @@ import {
 import React from "react";
 import { v4 as uuidv4 } from "uuid";
 
-const PostUserDetails = ({ details, date }) => {
+const PostUserDetails = ({ data, date }) => {
   return (
     <Grid
       item
@@ -27,13 +27,13 @@ const PostUserDetails = ({ details, date }) => {
     >
       <Card sx={{ maxWidth: "450px", border: "solid thin", padding: "0.3rem" }}>
         <CardHeader
-          avatar={<Avatar src={details.post.owner.picture} alt="image" />}
-          title={`${details.post.owner.title}. ${details.post.owner.firstName} ${details.post.owner.lastName}`}
-          subheader={date(details.post.publishDate)}
+          avatar={<Avatar src={data.owner.picture} alt="image" />}
+          title={`${data.owner.title}. ${data.owner.firstName} ${data.owner.lastName}`}
+          subheader={date(data.publishDate)}
           action={
             <Chip
               icon={<FavoriteIcon style={{ color: "red" }} />}
-              label={details.post.likes}
+              label={data.likes}
             />
           }
         />
@@ -45,7 +45,7 @@ const PostUserDetails = ({ details, date }) => {
             padding: "0.8rem",
             border: "groove #808080",
           }}
-          image={details.post.image}
+          image={data.image}
           alt="post"
         />
         <CardContent>
@@ -54,15 +54,15 @@ const PostUserDetails = ({ details, date }) => {
             style={{ marginBottom: "0.5rem" }}
             color="text.secondary"
           >
-            {details.post.text}
+            {data.text}
           </Typography>
           <Link
-            href={details.post.link}
+            href={data.link}
             style={{ display: "block", marginBottom: "0.5rem" }}
           >
             Visit the user's page
           </Link>
-          {details.post.tags.map((text) => (
+          {data.tags.map((text) => (
             <Typography
               key={uuidv4()}
               style={{

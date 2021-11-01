@@ -1,67 +1,61 @@
-import AddIcon from "@mui/icons-material/Add";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import RemoveIcon from "@mui/icons-material/Remove";
 import {
   Button,
   Card,
   CardActions,
   CardContent,
   CardMedia,
-  Grid,
+  IconButton,
+  InputAdornment,
   TextField,
   Typography,
 } from "@mui/material";
-import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
-import axios from "axios";
+import RemoveIcon from "@mui/icons-material/Remove";
+import AddIcon from "@mui/icons-material/Add";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import React, { useEffect, useState } from "react";
+import { useLocation, Link } from "react-router-dom";
+import {
+  useGetPostQuery,
+  useUpdatePostMutation,
+  useAddPostMutation,
+} from "../../features/fetchPostApi";
 import { useSelector } from "react-redux";
-import { Link, useLocation } from "react-router-dom";
-import { HEADERS, MAIN_ROUTE } from "../../App";
-import Loader from "../Loader/Loader";
 
 const EditPost = (props) => {
   // from react routem use location for check pathname
   const location = useLocation();
 
-  // const for path create new post
-  const pathNewPost = location.pathname === "/create";
+  // EDIT POST
 
-  // geter for state of all users
-  const posts = useSelector((state) => state.allPosts.value);
+  // get post by id
+  const { isSuccess: editSuccess, data: editData } = useGetPostQuery(
+    location.pathname !== "/create" && props.match.params.id
+  );
 
-  // initial value of new post with owner and post data
-  const initialValueNewPost = {
-    text: "",
+  // send update post
+  const [updatePost, { status }] = useUpdatePostMutation();
+
+  // state for  a post that will change
+  const [editPost, setEditPost] = useState({
     image: "",
-    likes: Math.round(Math.random() * 100),
-    tags: [],
-    owner: posts[0].owner.id,
-  };
+    link: "",
+    tags: [""],
+    text: "",
+  });
 
-  // state for post
-  const [editPost, setEditPost] = useState({});
-  // state for create new post
-  const [newPost, setNewPost] = useState(initialValueNewPost);
-  // state for number of inputs
-  const [inputs, setInputs] = useState([1]);
-  // state for new input field
-  const [inputValue, setInputValue] = useState("");
-
-  // find post by id,set in session storage soo if page is refresh data is not lost
+  // when post find by id success find set data in local state
   useEffect(() => {
-    if (!pathNewPost) {
-      if (posts.length && props.match.params.id) {
-        let forEditPost = posts.find(
-          (post) => post.id === props.match.params.id
-        );
-        sessionStorage.setItem("post", JSON.stringify(forEditPost));
-        let data = JSON.parse(sessionStorage.getItem("post"));
-        setEditPost(data);
-      }
-    }
+    editSuccess &&
+      location.pathname === `/${props.match.params.id}/edit` &&
+      setEditPost({
+        id: editData.id,
+        image: editData.image,
+        link: editData.link,
+        tags: editData.tags,
+        text: editData.text,
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props]);
+  }, [editSuccess]);
 
   // edit tags value
   const handleTags = (e, i) => {
@@ -71,108 +65,111 @@ const EditPost = (props) => {
     setEditPost({ ...editPost, tags: arrTags });
   };
 
-  // send edit data
-  const saveData = (id) => {
-    axios
-      .put(`${MAIN_ROUTE}post/${id}`, editPost, HEADERS)
-      .then((res) => {
-        res.status === 200 && console.log("response: ", res.data);
-        alert("Successfully saved modified data");
-      })
-      .catch((error) => alert("EditPost", error.message));
+  // CREATE NEW POST
+
+  // random selected owner
+  const randomOwner = useSelector((state) => state.owner.value);
+
+  // initial state for new post
+  const newPostInitialValue = {
+    text: "",
+    image: "",
+    likes: Math.round(Math.random() * 100),
+    tags: [""],
+    owner: randomOwner.id,
+  };
+  // state for new post
+  const [newPost, setNewPost] = useState(newPostInitialValue);
+  // adding new input for tag
+  const addInput = () => {
+    let inputTags = newPost.tags;
+    inputTags.push("");
+    setNewPost({ ...newPost, tags: [...inputTags] });
+  };
+  // remove last input for tag
+  const removeInput = () => {
+    let inputTags = newPost.tags;
+    inputTags.pop();
+    setNewPost({ ...newPost, tags: [...inputTags] });
   };
 
-  // remove last input
-  const removeItem = (index) =>
-    setInputs(inputs.filter((data, i) => i !== index));
-
-  // new text field(input) and set tag in array
-  const set = () => {
-    setInputs([...inputs, 1]);
-    const array = newPost.tags;
-
-    array.push(inputValue);
-    setInputValue("");
+  // fill tags input
+  const fillTag = (e, i) => {
+    const arrTags = newPost.tags;
+    arrTags[i] = e.target.value;
+    setNewPost({ ...newPost, tags: [...arrTags] });
   };
 
-  // send post to database
-  const sendPost = () => {
-    const array = newPost.tags;
-    array.push(inputValue);
-    axios
-      .post(`${MAIN_ROUTE}post/create`, newPost, HEADERS)
-      .then((res) => {
-        res.status === 200 && console.log(res.data);
-        alert("Successfully made post ...");
-        setNewPost(initialValueNewPost);
-        setInputValue("");
-        setInputs([1]);
-        window.document.querySelector("#tagInput").value = "";
-      })
-      .catch((error) => alert(error.message));
+  // disable button if inputs are empthy
+  const disableButton = () => {
+    if (newPost.text !== "" && newPost.image !== "" && newPost.tags[0] !== "") {
+      return false;
+    } else {
+      return true;
+    }
   };
 
-  return Object.keys(editPost).length !== 0 || pathNewPost ? (
-    <Grid container sx={{ justifyContent: "center", padding: "1rem" }}>
-      <Typography
-        variant="h3"
-        align="center"
-        sx={{ width: "100%", padding: "1rem" }}
-      >
-        {pathNewPost ? "Create New Post" : "EditPost"}
+  // create new post,send data to database
+  const [createPost, { isSuccess }] = useAddPostMutation();
+
+  useEffect(() => {
+    if (isSuccess) {
+      alert("Successfully saved modified data");
+      setNewPost(newPostInitialValue);
+    }
+    // eslint-disable-next-line
+  }, [isSuccess]);
+
+  // universal
+  const editQueastion = editPost.image ? editPost.image : "/logo192.png";
+  const newQuestion = newPost.image ? newPost.image : "/logo192.png";
+  const isCreateRoute = location.pathname === `/create`;
+
+  return (
+    <div style={{ width: "100%", padding: "0.8rem" }}>
+      <Typography variant="h5" align="center" sx={{ margin: "1rem 0" }}>
+        {isCreateRoute ? "CREATE POST" : "EDIT POST"}
       </Typography>
+
       <Card
         sx={{
-          maxWidth: "80%",
-          minWidth: "60%",
-          boxShadow: "0 0 8px 2px #000000cf",
-          "@media (max-width: 600px)": {
-            maxWidth: "90%",
-          },
+          maxWidth: 430,
+          minWidth: 300,
+          margin: "0 auto 2rem",
+          boxShadow: "0 0 4px 1px #0000008f",
         }}
       >
         <CardContent>
           <CardMedia
             component="img"
-            height="300px"
-            image={pathNewPost ? newPost.image : editPost.image}
+            image={isCreateRoute ? newQuestion : editQueastion}
             alt="post"
           />
           <TextField
-            label="Post Image"
-            variant="standard"
             type="text"
-            sx={{
-              width: "80%",
-              display: "flex",
-              margin: "1rem auto 0",
-            }}
-            required
-            value={pathNewPost ? newPost.image : editPost.image}
+            label="Url path"
+            variant="standard"
+            value={isCreateRoute ? newPost.image : editPost.image}
+            fullWidth
+            margin="dense"
             onChange={(e) =>
-              pathNewPost
+              isCreateRoute
                 ? setNewPost({ ...newPost, image: e.target.value })
                 : setEditPost({ ...editPost, image: e.target.value })
             }
           />
         </CardContent>
-
-        <CardContent sx={{ display: "flex", justifyContent: "center" }}>
+        <CardContent>
           <TextField
-            label="Text description"
-            variant="standard"
             type="text"
-            required
-            sx={{
-              width: "50%",
-              "@media (max-width: 600px)": {
-                width: "80%",
-              },
-            }}
+            label="Description"
             multiline
-            value={pathNewPost ? newPost.text : editPost.text}
+            variant="standard"
+            value={isCreateRoute ? newPost.text : editPost.text}
+            fullWidth
+            margin="dense"
             onChange={(e) =>
-              pathNewPost
+              isCreateRoute
                 ? setNewPost({ ...newPost, text: e.target.value })
                 : setEditPost({ ...editPost, text: e.target.value })
             }
@@ -181,86 +178,68 @@ const EditPost = (props) => {
         <CardContent
           sx={{
             display: "flex",
-            flexDirection: "column",
+            justifyContent: "center",
             alignItems: "center",
+            flexDirection: "column",
           }}
         >
-          {!pathNewPost
-            ? editPost?.tags.map((text, i) => (
-                <TextField
-                  key={i}
-                  label="Tag"
-                  required
-                  type="text"
-                  margin="dense"
-                  sx={{
-                    width: "50%",
-                    "@media (max-width: 600px)": {
-                      width: "80%",
-                    },
-                  }}
-                  value={text}
-                  onChange={(e) => handleTags(e, i)}
-                />
-              ))
-            : inputs.map((data, i) => (
-                <TextField
-                  label="Tag"
-                  required
-                  id="tagInput"
-                  margin="dense"
-                  type="text"
-                  key={i}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment
-                        sx={{ position: "relative", left: "40px" }}
-                        position="end"
-                      >
-                        {i === inputs.length - 1 && (
-                          <IconButton
-                            onClick={() => set()}
-                            aria-label="toggle password visibility"
-                            edge="end"
-                          >
-                            {inputs.length <= 5 && <AddIcon />}
-                          </IconButton>
-                        )}
-                      </InputAdornment>
-                    ),
-                    startAdornment: (
-                      <InputAdornment
-                        sx={{ position: "relative", right: "50px" }}
-                        position="start"
-                      >
-                        {i === inputs.length - 1 && (
-                          <IconButton
-                            onClick={() => removeItem(i)}
-                            aria-label="toggle password visibility"
-                            edge="end"
-                          >
-                            {inputs.length > 1 && <RemoveIcon />}
-                          </IconButton>
-                        )}
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    width: "50%",
-                    "@media (max-width: 600px)": {
-                      width: "80%",
-                    },
-                  }}
-                  value={inputValue.name}
-                  onChange={(e) => setInputValue(e.target.value)}
-                />
-              ))}
+          {!isCreateRoute &&
+            editPost.tags?.map((text, i) => (
+              <TextField
+                key={i}
+                type="text"
+                label="Tag"
+                multiline
+                variant="outlined"
+                value={text}
+                margin="dense"
+                onChange={(e) => handleTags(e, i)}
+              />
+            ))}
+          {isCreateRoute &&
+            newPost.tags.map((tag, i) => (
+              <TextField
+                key={i}
+                type="text"
+                label="Tag"
+                multiline
+                sx={{ width: "55.55%" }}
+                variant="outlined"
+                value={tag}
+                margin="dense"
+                onChange={(e) => fillTag(e, i)}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment
+                      sx={{ position: "relative", left: "40px" }}
+                      position="end"
+                    >
+                      {i === newPost.tags.length - 1 && (
+                        <IconButton edge="end" onClick={() => addInput()}>
+                          {newPost.tags.length <= 5 && <AddIcon />}
+                        </IconButton>
+                      )}
+                    </InputAdornment>
+                  ),
+                  startAdornment: (
+                    <InputAdornment
+                      sx={{ position: "relative", right: "50px" }}
+                      position="start"
+                    >
+                      {i === newPost.tags.length - 1 && (
+                        <IconButton onClick={() => removeInput()} edge="end">
+                          {newPost.tags.length > 1 && <RemoveIcon />}
+                        </IconButton>
+                      )}
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            ))}
         </CardContent>
-        <CardActions
-          sx={{ justifyContent: "space-evenly", marginBottom: "1rem" }}
-        >
+        <CardActions sx={{ justifyContent: "space-around" }}>
           <Button
-            variant="contained"
+            variant="outlined"
             component={Link}
             to={"/"}
             startIcon={<ArrowBackIcon />}
@@ -268,24 +247,23 @@ const EditPost = (props) => {
             Back
           </Button>
           <Button
-            variant="contained"
-            color="primary"
-            disabled={
-              pathNewPost
-                ? newPost.image && newPost.text
-                  ? false
-                  : true
-                : false
+            variant="outlined"
+            disabled={isCreateRoute ? disableButton() : false}
+            onClick={() =>
+              isCreateRoute
+                ? createPost(newPost)
+                : updatePost(editPost).then(
+                    () =>
+                      status === "fulfilled" &&
+                      alert("The post was successfully saved")
+                  )
             }
-            onClick={() => (pathNewPost ? sendPost() : saveData(editPost.id))}
           >
-            {pathNewPost ? "Create" : "Save"}
+            {isCreateRoute ? "Create" : "Save"}
           </Button>
         </CardActions>
       </Card>
-    </Grid>
-  ) : (
-    !pathNewPost && <Loader />
+    </div>
   );
 };
 
