@@ -1,3 +1,10 @@
+A simple application for creating posts, deleting, posting comments and changing the content of posts.
+Libraries used: React-create-app,Redux,Router,Material Ui...
+
+If you have any suggestions please send me a message. :)
+
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
