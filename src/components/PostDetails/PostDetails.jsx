@@ -17,7 +17,7 @@ const PostDetails = (props) => {
     props.match.params.id
   );
 
-  // convert date
+  // convert date 
   const date = (data) => {
     const time = data.split("T")[0].split("-");
     const publishDate = new Date(time[0], time[1] - 1, time[2]).toDateString();
