@@ -54,7 +54,7 @@ const AllPosts = () => {
         <Button
           component={Link}
           to={"/create"}
-          variant="outlined"
+          variant="contained"
           color="error"
         >
           Create new post
